@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+npm-debug.log*
+secrets/
+shared-scratch/*
+!shared-scratch/.gitkeep

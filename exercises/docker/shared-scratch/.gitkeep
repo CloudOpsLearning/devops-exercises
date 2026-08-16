@@ -1,0 +1,5 @@
+# This directory is the only place api-gateway and image-processor exchange files.
+# It ships empty on purpose. Everything under it is created at runtime by the
+# containers, which means whoever owns those files has to be a decision you made.
+#
+# Nothing in here should ever be committed except this file.

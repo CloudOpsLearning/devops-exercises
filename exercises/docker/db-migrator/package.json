@@ -1,0 +1,21 @@
+{
+  "name": "@outage-lab/db-migrator",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Short-lived job that owns the Helios schema. Runs to completion, then exits.",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "esbuild src/migrate.js --bundle --platform=node --format=esm --packages=external --outdir=dist",
+    "start": "node dist/migrate.js",
+    "dev": "node src/migrate.js"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0"
+  }
+}
