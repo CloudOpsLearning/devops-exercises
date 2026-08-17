@@ -50,9 +50,12 @@ for svc in "$SVC_GATEWAY" "$SVC_WORKER"; do
   [ "${restarts:-99}" -eq 0 ]
   assert $? "$svc never restarted during cold boot (restarts=$restarts)"
 
-  if dc logs "$svc" 2>&1 | grep -qE 'UnhandledPromiseRejection|SchemaNotReadyError|platform_meta.*does not exist'; then
+  # Capture before grepping: `grep -q` closes the pipe early, and under pipefail that
+  # turns a successful match into a failed pipeline.
+  svc_logs="$(dc logs "$svc" 2>&1)"
+  if printf '%s' "$svc_logs" | grep -qE 'UnhandledPromiseRejection|SchemaNotReadyError|platform_meta.*does not exist'; then
     fail "$svc logged a schema-race crash"
-    dc logs "$svc" 2>&1 | grep -E 'UnhandledPromiseRejection|SchemaNotReadyError|does not exist' | head -3 | sed 's/^/          /'
+    printf '%s' "$svc_logs" | grep -E 'UnhandledPromiseRejection|SchemaNotReadyError|does not exist' | head -3 | sed 's/^/          /'
   else
     pass "$svc logged no schema-race crash"
   fi

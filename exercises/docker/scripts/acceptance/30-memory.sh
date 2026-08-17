@@ -48,9 +48,12 @@ assert $? "worker did not restart during the spike storm (before=$before_restart
 [ "$oom" != "true" ]
 assert $? "worker was never OOM killed by the kernel"
 
-if dc logs --tail 400 "$SVC_WORKER" 2>&1 | grep -qE 'JavaScript heap out of memory|FATAL ERROR: .*Allocation failed'; then
+# Capture before grepping: `grep -q` closes the pipe early, and under pipefail that turns
+# a successful match into a failed pipeline.
+worker_logs="$(dc logs --tail 400 "$SVC_WORKER" 2>&1)"
+if printf '%s' "$worker_logs" | grep -qE 'JavaScript heap out of memory|FATAL ERROR: .*Allocation failed'; then
   fail "worker aborted with a V8 heap allocation failure"
-  dc logs --tail 400 "$SVC_WORKER" 2>&1 | grep -E 'heap out of memory|Allocation failed' | head -3 | sed 's/^/          /'
+  printf '%s' "$worker_logs" | grep -E 'heap out of memory|Allocation failed' | head -3 | sed 's/^/          /'
 else
   pass "no V8 allocation failure in the worker logs"
 fi

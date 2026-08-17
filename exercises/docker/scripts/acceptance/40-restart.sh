@@ -38,11 +38,14 @@ for svc in "$SVC_GATEWAY" "$SVC_WORKER"; do
   [ "$code" = "0" ]
   assert $? "$svc exited 0 rather than being killed (exit code $code)"
 
-  if dc logs --tail 200 "$svc" 2>&1 | grep -q 'graceful shutdown complete'; then
+  # Capture before grepping: `grep -q` closes the pipe early, and under pipefail that
+  # turns a successful match into a failed pipeline.
+  stop_logs="$(dc logs --tail 200 "$svc" 2>&1)"
+  if printf '%s' "$stop_logs" | grep -q 'graceful shutdown complete'; then
     pass "$svc logged a completed graceful shutdown"
   else
     fail "$svc never logged a graceful shutdown - the signal did not reach the application"
-    dc logs --tail 15 "$svc" 2>&1 | sed 's/^/          /'
+    printf '%s' "$stop_logs" | tail -15 | sed 's/^/          /'
   fi
 done
 

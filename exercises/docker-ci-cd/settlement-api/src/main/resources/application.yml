@@ -1,0 +1,91 @@
+# Every value that could leak money or identity has to be supplied by the platform.
+# There are no development defaults for credentials, the environment name, or build
+# provenance: if they are missing the application refuses to start, or refuses to
+# report itself ready. Both are deliberate.
+
+spring:
+  application:
+    name: settlement-api
+  datasource:
+    url: ${SETTLEMENT_DB_URL}
+    username: ${SETTLEMENT_DB_USER}
+    password: ${SETTLEMENT_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SETTLEMENT_DB_POOL_SIZE:8}
+      connection-timeout: 3000
+      pool-name: settlement-pool
+  jpa:
+    open-in-view: false
+    hibernate:
+      # The schema is owned by a migration, not by Hibernate. Never by Hibernate.
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    # Migrations are a deployment step (`--migrate`), not a startup side effect.
+    # Twelve replicas booting at once must not each try to own the schema.
+    enabled: false
+    locations: classpath:db/migration
+  lifecycle:
+    # In-flight settlement runs get this long to finish once a stop is requested.
+    timeout-per-shutdown-phase: 10s
+
+server:
+  port: ${SETTLEMENT_HTTP_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 50
+    connection-timeout: 5s
+
+management:
+  server:
+    # A separate port so that probes, metrics and heap details are never one
+    # misconfigured ingress rule away from the public internet.
+    port: ${SETTLEMENT_MANAGEMENT_PORT:9090}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        liveness:
+          include: livenessState,ping
+        readiness:
+          include: readinessState,db,schemaContract,buildProvenance
+  health:
+    diskspace:
+      enabled: false
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+info:
+  app:
+    name: settlement-api
+    version: ${SETTLEMENT_BUILD_VERSION:0.0.0-dev}
+    revision: ${SETTLEMENT_BUILD_REVISION:unknown}
+    environment: ${SETTLEMENT_ENVIRONMENT:unset}
+
+settlement:
+  environment: ${SETTLEMENT_ENVIRONMENT}
+  expected-schema-version: ${SETTLEMENT_EXPECTED_SCHEMA_VERSION:3}
+  build:
+    revision: ${SETTLEMENT_BUILD_REVISION:unknown}
+    version: ${SETTLEMENT_BUILD_VERSION:0.0.0-dev}
+  report:
+    default-megabytes: ${SETTLEMENT_REPORT_MB:192}
+    max-megabytes: ${SETTLEMENT_REPORT_MAX_MB:768}
+
+logging:
+  level:
+    root: ${SETTLEMENT_LOG_LEVEL:INFO}
+    com.kestrel.settlement: ${SETTLEMENT_LOG_LEVEL:INFO}

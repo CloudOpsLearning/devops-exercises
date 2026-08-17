@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.log
+sbom*.json
+trivy-report*
+.DS_Store
